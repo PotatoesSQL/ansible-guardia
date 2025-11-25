@@ -1,0 +1,15 @@
+---
+- name: Mettre à jour toutes les machines Linux
+  hosts: linux
+  become: true
+  gather_facts: false
+
+  tasks:
+    - name: Mettre à jour le cache DNF
+      ansible.builtin.dnf:
+        update_cache: yes
+
+    - name: Mettre à jour tous les paquets
+      ansible.builtin.dnf:
+        name: "*"
+        state: latest
