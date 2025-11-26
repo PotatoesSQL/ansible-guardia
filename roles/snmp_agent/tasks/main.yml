@@ -1,0 +1,9 @@
+#SPDX-License-Identifier: MIT-0
+---
+# tasks file for roles/snmp_agent
+- name: Installer le paquet SNMP et s'assurer qu'il est à la dernière version
+  ansible.builtin.package:
+    name:
+      - net-snmp
+      - net-snmp-utils
+    state: latest

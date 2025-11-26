@@ -1,0 +1,5 @@
+---
+- name: Installation et configuration de l'agent SNMP sur les machines
+  become: yes 
+  roles:
+    - snmp_agent 
