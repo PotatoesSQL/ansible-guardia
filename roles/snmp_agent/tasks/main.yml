@@ -1,9 +1,63 @@
-#SPDX-License-Identifier: MIT-0
 ---
-# tasks file for roles/snmp_agent
-- name: Installer le paquet SNMP et s'assurer qu'il est à la dernière version
+- name: 1. Déterminer les variables spécifiques à l'OS (paquet, service, chemin de conf)
+  ansible.builtin.set_fact:
+    snmp_package: >
+      {{ 'net-snmp' if ansible_os_family == 'RedHat' else 'snmpd' }}
+    snmpd_service_name: "snmpd"
+    snmpd_conf_path: "/etc/snmp/snmpd.conf"
+
+- name: 2. Installer le paquet SNMP et les utilitaires associés
   ansible.builtin.package:
     name:
-      - net-snmp
-      - net-snmp-utils
+      - "{{ snmp_package }}"
+      - "{{ snmp_package }}-utils" 
     state: latest
+
+- name: 3. Configurer les règles du firewall (firewalld sur AlmaLinux)
+  ansible.posix.firewalld:
+    port: 161/udp
+    zone: public
+    source: "{{ snmp_allowed_source | default('0.0.0.0/0') }}"
+    state: enabled
+    permanent: yes
+    immediate: yes 
+
+- name: 4. Déployer le fichier de configuration snmpd.conf
+  ansible.builtin.template:
+    src: snmpd.conf.j2
+    dest: "{{ snmpd_conf_path }}"
+    owner: root
+    group: root
+    mode: '0644'
+  notify: Redémarrer snmpd
+
+- name: 5. Créer l'utilisateur SNMPv3 s'il est activé et s'il n'existe pas
+  ansible.builtin.command: >
+    net-snmp-create-v3-user -r -A {{ snmp_v3_auth_passphrase }} 
+    -X {{ snmp_v3_priv_passphrase }} 
+    -a SHA -x AES {{ snmp_v3_user }}
+  when: snmp_v3_enabled | bool
+  args:
+    creates: /var/lib/net-snmp/snmpd.conf 
+  notify: Redémarrer snmpd
+
+- name: 6. S'assurer que le service SNMPD est démarré et activé au boot
+  ansible.builtin.service:
+    name: "{{ snmpd_service_name }}"
+    state: started
+    enabled: yes
+
+- name: 7. Test finak
+  ansible.builtin.command: >
+    snmpget -v 2c -c {{ snmp_community_string | default('public') }} 127.0.0.1 
+    1.3.6.1.2.1.1.1.0 # OID pour sysDescr
+  # Le 'register' stocke la sortie de la commande
+  register: snmp_check_output
+  # Le 'changed_when: false' garantit que cette étape ne signale pas de changement (car c'est juste une lecture)
+  changed_when: false
+  # Afficher la sortie pour l'opérateur
+  failed_when: "'No Response from' in snmp_check_output.stderr"
+  
+- name: Afficher le résultat du test SNMP
+  ansible.builtin.debug:
+    msg: "Résultat du test SNMP local : {{ snmp_check_output.stdout }}"
