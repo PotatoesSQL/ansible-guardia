@@ -9,8 +9,7 @@
 - name: 2. Installer le paquet SNMP et les utilitaires associés
   ansible.builtin.package:
     name:
-      - "{{ snmp_package }}"
-      - "{{ snmp_package }}-utils" 
+      - "{{ snmp_package }}" 
     state: latest
 
 - name: 3. Configurer les règles du firewall (firewalld sur AlmaLinux)
