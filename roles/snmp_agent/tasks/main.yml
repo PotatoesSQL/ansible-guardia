@@ -59,7 +59,7 @@
     enabled: yes
 
 # --- Vérification Finale de la Fonctionnalité ---
-- name: 7. Vérification finale : Tester la réponse de l'agent SNMP local (v2c)
+- name: 7. Vérification finale Tester la réponse de l'agent SNMP local (v2c)
   # Nous devons nous assurer que le paquet d'utilitaires est installé pour cette commande.
   ansible.builtin.command: >
     snmpget -v 2c -c {{ snmp_community_string | default('public') }} 127.0.0.1 
