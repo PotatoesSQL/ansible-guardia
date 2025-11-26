@@ -1,5 +1,6 @@
 ---
 - name: Installation et configuration de l'agent SNMP sur les machines
+  hosts: test
   become: yes 
   roles:
     - snmp_agent 
