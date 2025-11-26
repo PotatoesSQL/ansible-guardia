@@ -20,7 +20,7 @@
     state: latest
 
 # --- Configuration du Firewall (CORRECTION ERREUR MUTUELLE) ---
-- name: 3. Configurer les règles du firewall (firewalld : Port 161/udp limité à la source)
+- name: 3. Configurer les règles du firewall
   ansible.posix.firewalld:
     zone: public
     permanent: yes
