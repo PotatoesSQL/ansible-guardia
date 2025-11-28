@@ -1,77 +1,41 @@
 ---
-# =========================================================
-# Tâches pour le rôle snmp_agent
-# =========================================================
-
-- name: 1. Déterminer les variables spécifiques à l'OS (paquet, service, chemin de conf)
+- name: 1. Définir les variables et l'IP autorisée
   ansible.builtin.set_fact:
-    # Détection pour garantir la compatibilité RedHat/Debian
-    snmp_package: >
-      {{ 'net-snmp' if ansible_os_family == 'RedHat' else 'snmpd' }}
-    snmpd_service_name: "snmpd"
-    snmpd_conf_path: "/etc/snmp/snmpd.conf"
-    # Définition de la source autorisée (utilisée dans la rich_rule)
-    snmp_firewall_source: "{{ snmp_allowed_source | default('0.0.0.0/0') }}"
+    snmp_package: "{{ 'net-snmp' if ansible_os_family == 'RedHat' else 'snmpd' }}"
+    allowed_ip: "192.168.1.3" 
 
-# --- Installation ---
-- name: 2. Installer le paquet SNMP (agent et utilitaires)
+- name: 2. Installer le paquet SNMP
   ansible.builtin.package:
-    name: "{{ snmp_package }}" 
-    state: latest
+    name: "{{ snmp_package }}"
+    state: present
 
-# --- Configuration du Firewall (CORRECTION ERREUR MUTUELLE) ---
-- name: 3. Configurer les règles du firewall
+- name: 3. Configurer le Firewall (RedHat uniquement)
   ansible.posix.firewalld:
     zone: public
     permanent: yes
     immediate: yes
     state: enabled
-    # Utilisation de rich_rule pour combiner port et source, solution au paramètre exclusif
-    rich_rule: "rule family='ipv4' source address='{{ snmp_firewall_source }}' port protocol=udp port=161 accept"
-  # Le 'when' assure que cette tâche ne s'exécute que sur les systèmes RHEL qui utilisent firewalld
+    rich_rule: "rule family='ipv4' source address='{{ allowed_ip }}' port protocol=udp port=161 accept"
   when: ansible_os_family == 'RedHat'
 
-# --- Configuration de l'Agent SNMP ---
-- name: 4. Déployer le fichier de configuration snmpd.conf
+- name: 4. Déployer la configuration snmpd.conf
   ansible.builtin.template:
     src: snmpd.conf.j2
-    dest: "{{ snmpd_conf_path }}"
-    owner: root
-    group: root
+    dest: "/etc/snmp/snmpd.conf"
     mode: '0644'
+  vars:
+    poller_ip: "{{ allowed_ip }}"
   notify: Redémarrer snmpd
 
-- name: 5. Créer l'utilisateur SNMPv3 (si activé)
-  ansible.builtin.command: >
-    net-snmp-create-v3-user -r -A {{ snmp_v3_auth_passphrase }} 
-    -X {{ snmp_v3_priv_passphrase }} 
-    -a SHA -x AES {{ snmp_v3_user }}
-  when: snmp_v3_enabled | bool
-  args:
-    creates: /var/lib/net-snmp/snmpd.conf 
-  notify: Redémarrer snmpd
-
-# --- Gestion du Service ---
-- name: 6. S'assurer que le service SNMPD est démarré et activé au boot
+- name: 5. Démarrer le service SNMP
   ansible.builtin.service:
-    name: "{{ snmpd_service_name }}"
+    name: snmpd
     state: started
     enabled: yes
 
-# --- Vérification Finale de la Fonctionnalité ---
-- name: 7. Vérification finale Tester la réponse de l'agent SNMP local (v2c)
-  # Nous devons nous assurer que le paquet d'utilitaires est installé pour cette commande.
+- name: 6. Test de fonctionnement (snmpget local)
   ansible.builtin.command: >
-    snmpget -v 2c -c {{ snmp_community_string | default('public') }} 127.0.0.1 
-    1.3.6.1.2.1.1.1.0 
-  register: snmp_check_output
+    snmpget -v 2c -c {{ snmp_community_string | default('public') }} 127.0.0.1 1.3.6.1.2.1.1.1.0
+  register: result
   changed_when: false
-  # Échec si la commande retourne un message d'erreur de non-réponse
-  failed_when: "'No Response from' in snmp_check_output.stderr"
-  # N'exécute cette vérification que si snmpget a pu être installé (Tâche 2)
-  when: snmp_check_output is success 
-  
-- name: Afficher le résultat du test SNMP
-  ansible.builtin.debug:
-    msg: "✅ Agent SNMP répondant. Sortie: {{ snmp_check_output.stdout }}"
-  when: snmp_check_output is defined and snmp_check_output is success
+  failed_when: "'No Response' in result.stderr"
