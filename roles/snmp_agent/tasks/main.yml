@@ -21,10 +21,10 @@
 - name: 4. Déployer la configuration snmpd.conf
   ansible.builtin.template:
     src: snmpd.conf.j2
-    dest: "/etc/snmp/snmpd.conf"
+    dest: /etc/snmp/snmpd.conf
     mode: '0644'
   vars:
-    poller_ip: "{{ allowed_ip }}"
+    snmp_poller_ip: "{{ allowed_ip }}"
   notify: Redémarrer snmpd
 
 - name: 5. Démarrer le service SNMP
