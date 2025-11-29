@@ -10,32 +10,39 @@
     state: present
 
 - name: 3. Configurer le Firewall (RedHat uniquement)
-  ansible.posix.firewalld:
-    zone: public
-    permanent: yes
-    immediate: yes
-    state: enabled
-    rich_rule: "rule family='ipv4' source address='{{ allowed_ip }}' port protocol=udp port=161 accept"
-  when: ansible_os_family == 'RedHat'
+#   ansible.posix.firewalld:
+#     zone: public
+#     permanent: yes
+#     immediate: yes
+#     state: enabled
+#     rich_rule: "rule family='ipv4' source address='{{ allowed_ip }}' port protocol=udp port=161 accept"
+#   when: ansible_os_family == 'RedHat'
 
-- name: 4. Déployer la configuration snmpd.conf
+- name: 4. Vérifier le statut de snmpd
+  ansible.builtin.service:
+    name: snmpd
+    state: started
+    enabled: yes
+
+- name: 5. Deployer la configuration (snmpd.conf)
   ansible.builtin.template:
     src: snmpd.conf.j2
     dest: /etc/snmp/snmpd.conf
     mode: '0644'
   vars:
     snmp_poller_ip: "{{ allowed_ip }}"
-  notify: Redémarrer snmpd
+  register: snmpd_conf
 
-- name: 5. Démarrer le service SNMP
+- name: 6. Rédémarrer le service
   ansible.builtin.service:
     name: snmpd
-    state: started
-    enabled: yes
+    state: restarted
+  when: snmpd_conf is changed
 
-- name: 6. Test de fonctionnement (snmpget local)
+- name: 7. Test
   ansible.builtin.command: >
-    snmpget -v 2c -c {{ snmp_community_string | default('public') }} 127.0.0.1 1.3.6.1.2.1.1.1.0
+    snmpget -v 2c -c {{ snmp_community_string | default('public') }}
+    127.0.0.1 1.3.6.1.2.1.1.1.0
   register: result
   changed_when: false
   failed_when: "'No Response' in result.stderr"
