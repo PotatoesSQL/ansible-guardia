@@ -9,7 +9,7 @@
     name: "{{ snmp_package }}"
     state: present
 
-- name: 3. Configurer le Firewall (RedHat uniquement)
+# - name: 3. Configurer le Firewall (RedHat uniquement)
 #   ansible.posix.firewalld:
 #     zone: public
 #     permanent: yes
