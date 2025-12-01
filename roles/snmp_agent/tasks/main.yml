@@ -60,26 +60,31 @@
 - name: 8. CLAPI - Ajouter/Modifier l'hôte (ADD) avec le format exact
   ansible.builtin.command: >
     /usr/share/centreon/bin/centreon -u admin -p Centreon1admin!
-    -o HOST -a ADD -v "{{ inventory_hostname }};{{ inventory_hostname }};{{ ansible_host }};template-linux-snmp-custom;Central"
+    -o HOST -a ADD
+    -v "{{ inventory_hostname }};{{ inventory_hostname }};{{ ansible_host }};template-linux-snmp-custom;Central;Linux-Servers;1"
   delegate_to: "central"
-  become: true # <-- AJOUTER CETTE LIGNE
+  become: true
   register: clapi_add_result
-  changed_when: clapi_add_result.rc != 0
-  ignore_errors: true 
+  # l'hôte existe déjà => pas un échec bloquant
+  failed_when: >
+    clapi_add_result.rc != 0
+    and 'Object already exists' not in clapi_add_result.stdout
+  changed_when: clapi_add_result.rc == 0
 
-- name: 9. CLAPI - Mettre à jour l'adresse IP (SET)
+- name: 9. CLAPI - Mettre à jour l'adresse IP (SETPARAM)
   ansible.builtin.command: >
     /usr/share/centreon/bin/centreon -u admin -p Centreon1admin!
-    -o HOST -a SET -v "{{ inventory_hostname }};address;{{ ansible_host }}"
+    -o HOST -a SETPARAM
+    -v "{{ inventory_hostname }};address;{{ ansible_host }}"
   delegate_to: "central"
-  become: true # <-- AJOUTER CETTE LIGNE
-  when: clapi_add_result is failed or clapi_add_result is success
-  changed_when: True 
+  become: true
+  when: clapi_add_result is success or clapi_add_result is failed
+  changed_when: true
 
 - name: 10. CLAPI - Exporter et Redémarrer le moteur de supervision
   ansible.builtin.command: >
     /usr/share/centreon/bin/centreon -u admin -p Centreon1admin!
     -o CONFIGURATION -a APPLYPOLICIES
   delegate_to: "central"
-  become: true # <-- AJOUTER CETTE LIGNE
-  changed_when: True
+  become: true
+  changed_when: true
