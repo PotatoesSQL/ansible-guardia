@@ -61,7 +61,7 @@
   ansible.builtin.command: >
     /usr/share/centreon/bin/centreon -u admin -p Centreon!admin 
     -o HOST -a ADD -v "{{ inventory_hostname }};{{ inventory_hostname }};{{ ansible_host }};template-linux-snmp-custom;Central"
-  delegate_to: "{{ groups['centreon_central'][0] }}"
+  delegate_to: "central"
   register: clapi_add_result
   changed_when: clapi_add_result.rc != 0
   ignore_errors: true 
@@ -70,7 +70,7 @@
   ansible.builtin.command: >
     /usr/share/centreon/bin/centreon -u admin -p Centreon!admin 
     -o HOST -a SET -v "{{ inventory_hostname }};address;{{ ansible_host }}"
-  delegate_to: "{{ groups['centreon_central'][0] }}"
+  delegate_to: "central"
   when: clapi_add_result is failed or clapi_add_result is success
   changed_when: True 
 
@@ -78,5 +78,5 @@
   ansible.builtin.command: >
     /usr/share/centreon/bin/centreon -u admin -p Centreon!admin 
     -o CONFIGURATION -a APPLYPOLICIES
-  delegate_to: "{{ groups['centreon_central'][0] }}"
+  delegate_to: "central"
   changed_when: True
