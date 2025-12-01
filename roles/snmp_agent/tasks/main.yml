@@ -61,11 +61,10 @@
   ansible.builtin.command: >
     /usr/share/centreon/bin/centreon -u admin -p Centreon1admin!
     -o HOST -a ADD
-    -v "{{ inventory_hostname }};{{ inventory_hostname }};{{ ansible_host }};template-linux-snmp-custom;Central;Linux-Servers;1"
+    -v "{{ inventory_hostname }};{{ inventory_hostname }};{{ ansible_host }};OS-Linux-SNMP-custom;Central;"
   delegate_to: "central"
   become: true
   register: clapi_add_result
-  # l'hôte existe déjà => pas un échec bloquant
   failed_when: >
     clapi_add_result.rc != 0
     and 'Object already exists' not in clapi_add_result.stdout
@@ -88,3 +87,4 @@
   delegate_to: "central"
   become: true
   changed_when: true
+  
