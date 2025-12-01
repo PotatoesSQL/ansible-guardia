@@ -59,7 +59,7 @@
 
 - name: 8. CLAPI - Ajouter/Modifier l'hôte (ADD) avec le format exact
   ansible.builtin.command: >
-    /usr/share/centreon/bin/centreon -u admin -p "Centreon!admin"
+    /usr/share/centreon/bin/centreon -u admin -p Centreon1admin!
     -o HOST -a ADD -v "{{ inventory_hostname }};{{ inventory_hostname }};{{ ansible_host }};template-linux-snmp-custom;Central"
   delegate_to: "central"
   become: true # <-- AJOUTER CETTE LIGNE
@@ -69,7 +69,7 @@
 
 - name: 9. CLAPI - Mettre à jour l'adresse IP (SET)
   ansible.builtin.command: >
-    /usr/share/centreon/bin/centreon -u admin -p Centreon!admin 
+    /usr/share/centreon/bin/centreon -u admin -p Centreon1admin!
     -o HOST -a SET -v "{{ inventory_hostname }};address;{{ ansible_host }}"
   delegate_to: "central"
   become: true # <-- AJOUTER CETTE LIGNE
@@ -78,7 +78,7 @@
 
 - name: 10. CLAPI - Exporter et Redémarrer le moteur de supervision
   ansible.builtin.command: >
-    /usr/share/centreon/bin/centreon -u admin -p Centreon!admin 
+    /usr/share/centreon/bin/centreon -u admin -p Centreon1admin!
     -o CONFIGURATION -a APPLYPOLICIES
   delegate_to: "central"
   become: true # <-- AJOUTER CETTE LIGNE
