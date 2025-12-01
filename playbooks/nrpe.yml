@@ -17,7 +17,12 @@
       dnf:
         name:
           - nrpe
-          - nagios-plugins-all
+          - nagios-plugins-disk
+          - nagios-plugins-load
+          - nagios-plugins-procs
+          - nagios-plugins-users
+          - nagios-plugins-swap
+          - nagios-plugins-uptime
           - python3-policycoreutils
         state: present
 
