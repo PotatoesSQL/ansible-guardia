@@ -59,7 +59,7 @@
 
 - name: 8. CLAPI - Ajouter/Modifier l'hôte (ADD) avec le format exact
   ansible.builtin.command: >
-    /usr/share/centreon/bin/centreon -u admin -p Centreon!admin 
+    /usr/share/centreon/bin/centreon -u admin -p "Centreon!admin"
     -o HOST -a ADD -v "{{ inventory_hostname }};{{ inventory_hostname }};{{ ansible_host }};template-linux-snmp-custom;Central"
   delegate_to: "central"
   become: true # <-- AJOUTER CETTE LIGNE
