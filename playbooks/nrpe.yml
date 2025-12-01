@@ -13,7 +13,7 @@
         name: epel-release
         state: present
 
-    - name: Installer NRPE, les plugins et les outils SELinux
+    - name: Installer NRPE et les plugins
       dnf:
         name:
           - nrpe
@@ -23,7 +23,6 @@
           - nagios-plugins-users
           - nagios-plugins-swap
           - nagios-plugins-uptime
-          - python3-policycoreutils
         state: present
 
     - name: Configurer l'IP autorisée (allowed_hosts)
@@ -40,7 +39,7 @@
         line: "dont_blame_nrpe=1"
       notify: Redémarrer NRPE
 
-    - name: S'assurer que NRPE lit le dossier de conf externe (/etc/nrpe.d/)
+    - name: S'assurer que NRPE lit le dossier de conf externe
       lineinfile:
         path: /etc/nagios/nrpe.cfg
         regexp: "^include_dir=/etc/nrpe.d"
@@ -53,12 +52,6 @@
         permanent: yes
         state: enabled
         immediate: yes
-
-    - name: Autoriser NRPE à tourner sous SELinux
-      seboolean:
-        name: nagios_run_nrpe
-        state: yes
-        persistent: yes
 
     - name: Démarrer et activer NRPE
       service:
