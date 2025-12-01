@@ -1,0 +1,68 @@
+---
+- name: Installation NRPE pour Centreon
+  hosts: test
+  become: yes
+
+  vars:
+    centreon_ip: "192.168.1.3"
+    allowed_hosts: "127.0.0.1,{{ centreon_ip }}"
+
+  tasks:
+    - name: Installer le dépôt EPEL
+      dnf:
+        name: epel-release
+        state: present
+
+    - name: Installer NRPE, les plugins et les outils SELinux
+      dnf:
+        name:
+          - nrpe
+          - nagios-plugins-all
+          - python3-policycoreutils
+        state: present
+
+    - name: Configurer l'IP autorisée (allowed_hosts)
+      lineinfile:
+        path: /etc/nagios/nrpe.cfg
+        regexp: "^allowed_hosts="
+        line: "allowed_hosts={{ allowed_hosts }}"
+      notify: Redémarrer NRPE
+
+    - name: Activer les arguments de commande (dont_blame_nrpe)
+      lineinfile:
+        path: /etc/nagios/nrpe.cfg
+        regexp: "^dont_blame_nrpe="
+        line: "dont_blame_nrpe=1"
+      notify: Redémarrer NRPE
+
+    - name: S'assurer que NRPE lit le dossier de conf externe (/etc/nrpe.d/)
+      lineinfile:
+        path: /etc/nagios/nrpe.cfg
+        regexp: "^include_dir=/etc/nrpe.d"
+        line: "include_dir=/etc/nrpe.d"
+        state: present
+
+    - name: Ouvrir le port 5666 dans le pare-feu
+      firewalld:
+        port: 5666/tcp
+        permanent: yes
+        state: enabled
+        immediate: yes
+
+    - name: Autoriser NRPE à tourner sous SELinux
+      seboolean:
+        name: nagios_run_nrpe
+        state: yes
+        persistent: yes
+
+    - name: Démarrer et activer NRPE
+      service:
+        name: nrpe
+        state: started
+        enabled: yes
+
+  handlers:
+    - name: Redémarrer NRPE
+      service:
+        name: nrpe
+        state: restarted
