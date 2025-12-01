@@ -9,14 +9,24 @@
     name: "{{ snmp_package }}"
     state: present
 
-# - name: 3. Configurer le Firewall (RedHat uniquement)
-#   ansible.posix.firewalld:
-#     zone: public
-#     permanent: yes
-#     immediate: yes
-#     state: enabled
-#     rich_rule: "rule family='ipv4' source address='{{ allowed_ip }}' port protocol=udp port=161 accept"
-#   when: ansible_os_family == 'RedHat'
+- name: 3. Configurer le Firewall - Ouvrir le port SNMP UDP/161
+  ansible.posix.firewalld:
+    zone: public
+    permanent: yes
+    immediate: yes
+    state: enabled
+    rich_rule: "rule family='ipv4' source address='{{ allowed_ip }}' port protocol=udp port=161 accept"
+  when: ansible_os_family == 'RedHat'
+
+- name: 3b. Configurer le Firewall - Autoriser le Ping (ICMP)
+  ansible.posix.firewalld:
+    zone: public
+    permanent: yes
+    immediate: yes
+    state: enabled
+    # Autorise toutes les requêtes ICMP (dont le Ping) provenant du poller
+    rich_rule: "rule family='ipv4' source address='{{ allowed_ip }}' protocol value='icmp' accept"
+  when: ansible_os_family == 'RedHat'
 
 - name: 4. Vérifier le statut de snmpd
   ansible.builtin.service:
