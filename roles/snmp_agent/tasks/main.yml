@@ -80,7 +80,17 @@
   changed_when: clapi_add_result.rc == 0
 
 
-- name: 9. CLAPI - Exporter et Redémarrer le moteur de supervision
+- name: 9. CLAPI - Appliquer le template à l'hôte (APPLYTPL)
+  ansible.builtin.command: >
+    /usr/share/centreon/bin/centreon -u admin -p Centreon1admin!
+    -o HOST -a APPLYTPL
+    -v "{{ inventory_hostname }}"
+  delegate_to: "central"
+  become: true
+  changed_when: true
+
+
+- name: 10. CLAPI - Exporter et Redémarrer le moteur de supervision
   ansible.builtin.command: >
     /usr/share/centreon/bin/centreon -u admin -p 'Centreon1admin!'
     -a APPLYCFG -v {{ applycfg_value }}
