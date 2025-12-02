@@ -23,6 +23,7 @@
           - nagios-plugins-users
           - nagios-plugins-swap
           - nagios-plugins-uptime
+          - nagios-plugins-ntp
         state: present
 
     - name: Configurer l'IP autorisée (allowed_hosts)
@@ -45,6 +46,21 @@
         regexp: "^include_dir=/etc/nrpe.d"
         line: "include_dir=/etc/nrpe.d"
         state: present
+
+    - name: Créer le fichier de définitions pour Centreon
+      copy:
+        dest: /etc/nrpe.d/centreon.cfg
+        content: |
+          # Dictionnaire des commandes autorisées
+          command[check_load]=/usr/lib64/nagios/plugins/check_load -w 5,4,3 -c 10,8,6
+          command[check_disk]=/usr/lib64/nagios/plugins/check_disk -w 20% -c 10% -p /
+          command[check_swap]=/usr/lib64/nagios/plugins/check_swap -w 50% -c 20%
+          command[check_uptime]=/usr/lib64/nagios/plugins/check_uptime
+          command[check_ntp]=/usr/lib64/nagios/plugins/check_ntp_time -H fr.pool.ntp.org -w 0.5 -c 1
+        owner: root
+        group: root
+        mode: "0644"
+      notify: Redémarrer NRPE
 
     - name: Ouvrir le port 5666 dans le pare-feu
       firewalld:
