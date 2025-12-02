@@ -2,7 +2,8 @@
 - name: 1. Définir les variables et l'IP autorisée
   ansible.builtin.set_fact:
     snmp_package: "{{ 'net-snmp' if ansible_os_family == 'RedHat' else 'snmpd' }}"
-    allowed_ip: "192.168.2.2" 
+    applycfg_value: "{{ '1' if supervisor == 'central' else '7' }}"
+    supervisor_ip: "{{ '192.168.1.3' if supervisor == 'central' else '192.168.2.2' }}"
 
 - name: 2. Installer le paquet SNMP
   ansible.builtin.package:
@@ -15,7 +16,7 @@
     permanent: yes
     immediate: yes
     state: enabled
-    rich_rule: "rule family='ipv4' source address='{{ allowed_ip }}' port protocol=udp port=161 accept"
+    rich_rule: "rule family='ipv4' source address='{{ supervisor_ip }}' port protocol=udp port=161 accept"
   when: ansible_os_family == 'RedHat'
 
 - name: 3b. Configurer le Firewall - Autoriser le Ping (ICMP)
@@ -24,8 +25,7 @@
     permanent: yes
     immediate: yes
     state: enabled
-    # Autorise toutes les requêtes ICMP (dont le Ping) provenant du poller
-    rich_rule: "rule family='ipv4' source address='{{ allowed_ip }}' protocol value='icmp' accept"
+    rich_rule: "rule family='ipv4' source address='{{ supervisor_ip }}' protocol value='icmp' accept"
   when: ansible_os_family == 'RedHat'
 
 - name: 4. Vérifier le statut de snmpd
@@ -40,7 +40,7 @@
     dest: /etc/snmp/snmpd.conf
     mode: '0644'
   vars:
-    snmp_poller_ip: "{{ allowed_ip }}"
+    snmp_poller_ip: "{{ supervisor_ip }}"
   register: snmpd_conf
 
 - name: 6. Rédémarrer le service
@@ -82,9 +82,8 @@
 
 - name: 10. CLAPI - Exporter et Redémarrer le moteur de supervision
   ansible.builtin.command: >
-    /usr/share/centreon/bin/centreon -u admin -p Centreon1admin!
-    -o CONFIGURATION -a APPLYPOLICIES
+    /usr/share/centreon/bin/centreon -u admin -p 'Centreon1admin!'
+    -a APPLYCFG -v {{ applycfg_value }}
   delegate_to: "central"
   become: true
   changed_when: true
-  
